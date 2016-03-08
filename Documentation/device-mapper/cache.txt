@@ -121,6 +121,40 @@ For the time being, a message "migration_threshold <#sectors>"
 can be used to set the maximum number of sectors being migrated,
 the default being 204800 sectors (or 100MB).
 
+
+Writeback watermarks
+--------------------
+
+The migration between the cache and origin devices in writeback mode causes
+a large amount of I/O, since every write causes the actual data to be written
+to the cache device, and the full cache block to be read from the cache device
+and written to the origin (sequential I/O, so it does not have a big penalty).
+
+The message "writeback_low_watermark <PCT>" can be used to set a percentage
+of the cache to be kept dirty.  This will allow more writes to completely
+avoid the origin device.  Writebacks will occur at the migration_threshold
+rate once the percentage of dirty blocks exceeds the writeback_low_watermark.
+
+The message "writeback_high_watermark <PCT>" can be used to set a percentage
+that will cause the dirty blocks to be flushed as quickly as possible (exceeding
+the migration_threshold) until the number of dirty blocks drops below the high
+watermark percentage.
+
+The default values for these settings are as follows, resulting in no blocks
+being kept dirty, and always flushing at the migration_threshold rate:
+writeback_low_watermark 0
+writeback_high_watermark 100
+
+If you adjust these figures, remember that increasing the low watermark will
+reduce the amount of cache available for read caching, so starting at values
+around 20-30 percent is probably a good idea unless you have a write intensive
+workload.
+
+If you increase the low watermark, you will need to set it back to 0 before
+trying to remove the cache, otherwise the userspace program will wait forever
+for the dirty blocks to be flushed.
+
+
 Updating on-disk metadata
 -------------------------
 
